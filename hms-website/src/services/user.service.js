@@ -12,6 +12,7 @@ export const createUserService = async ({ data }) => {
         // Store user data in local storage
         localStorage.setItem("user", JSON.stringify({ 
             name: data.name,
+            uid: data.uid,
             email: data.email,
             role: data.role
         }));
@@ -25,22 +26,37 @@ export const createUserService = async ({ data }) => {
     }
 }
 
-// This function retrieves a user from Firestore database
+// This function retrieves a user from the backend API (which uses Admin SDK)
+// Falls back to direct Firestore read if backend is unavailable
 export const getUserService = async ({ uid, role }) => {
-    // Create a reference to the document in Firestore
-    const docRef = doc(fdb, `Users/${uid}`);
-    // Get the document snapshot
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-        // Log the document data to the console
-        console.log("Document data:", docSnap.data());
-        
-        // Check if the role matches, return null if it doesn't
-        if (docSnap.data().role !== role) return null;
-        // Return the document data
-        return docSnap.data();
+    // Try backend API first (bypasses Firestore security rules)
+    try {
+        const res = await fetch(`http://localhost:8080/api/admin/user/${uid}`);
+        const result = await res.json();
+        if (result.success && result.data) {
+            const userData = result.data;
+            console.log("User data from API:", userData);
+            // Check if the role matches
+            if (userData.role !== role) return null;
+            return userData;
+        }
+    } catch (apiError) {
+        console.warn("Backend API unavailable, trying direct Firestore:", apiError);
     }
-    // Log a message if no document is found
+
+    // Fallback: Direct Firestore read
+    try {
+        const docRef = doc(fdb, `Users/${uid}`);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            console.log("Document data:", docSnap.data());
+            if (docSnap.data().role !== role) return null;
+            return docSnap.data();
+        }
+    } catch (firestoreError) {
+        console.warn("Direct Firestore read failed:", firestoreError.message);
+    }
+
     console.log("No such document!");
     return null;
 }

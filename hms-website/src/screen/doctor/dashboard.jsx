@@ -62,14 +62,23 @@ export default function DoctorDashboard() {
   });
 
   useEffect(() => {
-    if (user) {
-      fetchAppointments();
-    }
+    fetchAppointments();
   }, [user]);
 
   const fetchAppointments = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/api/appointments?userId=${user?.uid || 'doctor1'}&role=doctor`);
+      let userId = user?.uid || user?.id;
+      if (!userId) {
+        try {
+          const stored = JSON.parse(localStorage.getItem('user'));
+          userId = stored?.uid || stored?.id;
+        } catch (e) {}
+      }
+      if (!userId) {
+        userId = 'doctor1';
+      }
+      console.log('Doctor fetching appointments for userId:', userId);
+      const res = await fetch(`http://localhost:8080/api/appointments?userId=${userId}&role=doctor`);
       const data = await res.json();
       if (data.success) {
         setAppointments(data.data);

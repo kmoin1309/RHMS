@@ -10,7 +10,7 @@ import AdminDashboard from "./screen/admin/dashboard";
 import PatientDashboard from "./screen/patient/dashboard";
 import AppointmentManagement from "./screen/patient/AppointmentManagement";
 import PatientOnboarding from "./screen/patient/PatientOnboarding";
-import NotFound from "./NotFound";
+// import NotFound from "./NotFound";
 
 // This is the main application component
 function App() {

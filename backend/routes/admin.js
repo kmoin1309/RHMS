@@ -108,6 +108,27 @@ router.get('/users', async (req, res) => {
   }
 });
 
+// Get a specific user by UID from Firestore Users collection
+router.get('/user/:uid', async (req, res) => {
+  try {
+    const { uid } = req.params;
+    
+    if (!isFirebaseConnected || !db) {
+      return res.json({ success: false, message: 'Firebase not connected' });
+    }
+
+    const docSnap = await db.collection('Users').doc(uid).get();
+    if (docSnap.exists) {
+      return res.json({ success: true, data: docSnap.data() });
+    }
+    
+    return res.json({ success: false, message: 'User not found' });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Get All Patients from Firebase Auth
 router.get('/patients', async (req, res) => {
   try {
@@ -152,54 +173,70 @@ router.get('/patients', async (req, res) => {
 // Get All Doctors from Firebase Auth
 router.get('/doctors', async (req, res) => {
   try {
-    if (!isFirebaseConnected || !auth) {
+    if (!isFirebaseConnected || !db) {
       return res.json({ success: true, data: mockDoctors, source: 'mock' });
     }
 
-    // Fetch all users and filter doctors
-    const listUsersResult = await auth.listUsers(1000);
-    
-    let doctors = listUsersResult.users
-      .filter(user => {
-        const role = user.customClaims?.role;
-        return role === 'doctor' || role === 'admin';
-      })
-      .map(user => ({
-        id: user.uid,
-        uid: user.uid,
-        name: user.displayName || user.email?.split('@')[0] || 'Unknown Doctor',
-        email: user.email || 'No Email',
-        phoneNumber: user.phoneNumber || 'N/A',
-        emailVerified: user.emailVerified,
-        specialization: user.customClaims?.specialization || 'General Medicine',
-        status: user.disabled ? 'Inactive' : 'Active',
-        photoURL: user.photoURL || null,
-        patients: 0, // Will need to be calculated from appointments
-        createdAt: new Date(user.metadata.creationTime).toISOString().split('T')[0],
-        role: user.customClaims?.role || 'doctor'
-      }));
+    const doctorMap = new Map();
 
-    // If no doctors found in auth, check Firestore doctors collection as fallback
-    if (doctors.length === 0 && db) {
-      try {
-        const docSnapshot = await db.collection('doctors').get();
-        if (!docSnapshot.empty) {
-          doctors = docSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            source: 'firestore'
-          }));
-        }
-      } catch (err) {
-        console.warn('Could not fetch from doctors collection:', err.message);
-      }
+    // 1. Check Users collection for role=2 (doctor)
+    try {
+      const usersSnap = await db.collection('Users').where('role', '==', 2).get();
+      usersSnap.docs.forEach(doc => {
+        const data = doc.data();
+        const uid = data.uid || doc.id;
+        doctorMap.set(uid, {
+          id: uid,
+          uid: uid,
+          name: data.name || 'Unknown Doctor',
+          email: data.email || 'No Email',
+          specialization: data.specialization || 'General Medicine',
+          status: data.status || 'Active',
+          patients: data.patients || 0,
+          source: 'Users'
+        });
+      });
+    } catch (err) {
+      console.warn('Could not fetch from Users collection:', err.message);
     }
+
+    // 2. Also check doctors collection and merge
+    try {
+      const docSnapshot = await db.collection('doctors').get();
+      docSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const uid = data.uid || doc.id;
+        if (!doctorMap.has(uid)) {
+          doctorMap.set(uid, {
+            id: uid,
+            uid: uid,
+            name: data.name || 'Unknown Doctor',
+            email: data.email || 'No Email',
+            specialization: data.specialization || 'General Medicine',
+            status: data.status || 'Active',
+            patients: data.patients || 0,
+            source: 'doctors'
+          });
+        } else {
+          // Merge specialization from doctors collection if missing in Users
+          const existing = doctorMap.get(uid);
+          if (!existing.specialization || existing.specialization === 'General Medicine') {
+            existing.specialization = data.specialization || existing.specialization;
+          }
+          doctorMap.set(uid, existing);
+        }
+      });
+    } catch (err) {
+      console.warn('Could not fetch from doctors collection:', err.message);
+    }
+
+    const doctors = Array.from(doctorMap.values());
 
     res.json({ 
       success: true, 
       data: doctors,
       count: doctors.length,
-      source: 'firebase-auth'
+      source: 'firebase'
     });
   } catch (error) {
     console.error('Error fetching doctors:', error);

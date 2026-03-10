@@ -31,7 +31,15 @@ router.get('/', async (req, res) => {
       if (role === 'doctor') query = query.where('doctorId', '==', userId);
       
       const snapshot = await query.get();
-      const appointments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const appointments = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data,
+          date: data.date && data.date.toDate ? data.date.toDate().toISOString() : data.date,
+          createdAt: data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toISOString() : data.createdAt
+        };
+      });
       return res.json({ success: true, data: appointments });
     }
 
@@ -74,8 +82,11 @@ router.post('/book', async (req, res) => {
 
     if (isFirebaseConnected && db) {
       // Fetch names for convenience
-      const pDoc = await db.collection('users').doc(patientId).get();
-      const dDoc = await db.collection('users').doc(doctorId).get(); // or 'doctors' collection
+      const pDoc = await db.collection('Users').doc(patientId).get();
+      let dDoc = await db.collection('Users').doc(doctorId).get();
+      if (!dDoc.exists) {
+        dDoc = await db.collection('doctors').doc(doctorId).get();
+      }
       
       const appointmentData = {
         ...newAppointment,

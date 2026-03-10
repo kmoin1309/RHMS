@@ -11,16 +11,26 @@ export default function AppointmentManagement() {
   const [activeTab, setActiveTab] = useState('upcoming');
 
   useEffect(() => {
-    if (user) {
-      fetchAppointments();
-    }
+    fetchAppointments();
   }, [user]);
 
   const fetchAppointments = async () => {
     try {
-      // Fetch appointments for the logged-in patient
-      const res = await fetch(`http://localhost:8080/api/appointments?userId=${user.uid}&role=patient`);
+      // Get userId from context or directly from localStorage as fallback
+      let userId = user?.uid || user?.id;
+      if (!userId) {
+        try {
+          const stored = JSON.parse(localStorage.getItem('user'));
+          userId = stored?.uid || stored?.id;
+        } catch (e) {}
+      }
+      if (!userId) {
+        userId = 'guest';
+      }
+      console.log('Fetching appointments for userId:', userId);
+      const res = await fetch(`http://localhost:8080/api/appointments?userId=${userId}&role=patient`);
       const data = await res.json();
+      console.log('Appointments response:', data);
       if (data.success) {
         setAppointments(data.data);
       }
