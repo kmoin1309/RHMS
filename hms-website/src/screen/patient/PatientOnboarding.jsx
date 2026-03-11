@@ -43,6 +43,7 @@ export default function PatientOnboarding() {
         acetone: '0',
         spo2: '100',
         activity: '0',
+        temperature: '36.5',
         // History
         hypertensive: 'No',
         family_hypertension: 'No',
@@ -67,6 +68,7 @@ export default function PatientOnboarding() {
                 acetone: realData.acetone?.toFixed(2) || '0',
                 spo2: realData.spo2?.toFixed(2) || '100',
                 activity: realData.activity ? '1' : '0',
+                temperature: realData.temperature?.toFixed(2) || '36.5',
             }));
         }
     }, [realData]);
@@ -611,6 +613,14 @@ export default function PatientOnboarding() {
                                     label="Activity"
                                     name="activity"
                                     value={formData.activity}
+                                    onChange={handleChange}
+                                    readOnly={true}
+                                    liveIndicator={true}
+                                />
+                                <NumberField
+                                    label="Temperature (°C)"
+                                    name="temperature"
+                                    value={formData.temperature}
                                     onChange={handleChange}
                                     readOnly={true}
                                     liveIndicator={true}
