@@ -419,9 +419,8 @@ export default function PatientOnboarding() {
                 .animate-fade-in-up { animation: fade-in-up 0.5s ease-out; }
             `}</style>
 
-            <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '24px 16px' }}>
-
-                {/* Header */}
+            {/* Header - always centered */}
+            <div style={{ maxWidth: step === 1 ? '1000px' : '100%', margin: '0 auto', padding: '24px 24px 0' }}>
                 <div style={{
                     background: '#ffffff',
                     borderRadius: '16px',
@@ -494,8 +493,11 @@ export default function PatientOnboarding() {
                         <span style={{ fontWeight: '600', fontSize: '14px' }}>Results & Action</span>
                     </div>
                 </div>
+            </div>
 
-                {step === 1 && (
+            {/* Step 1: Health Data Form - contained width */}
+            {step === 1 && (
+                <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '0 16px 24px' }}>
                     <form onSubmit={handleSubmit} className="animate-fade-in-up">
 
                         {/* Patient Data Section */}
@@ -892,90 +894,89 @@ export default function PatientOnboarding() {
                             </button>
                         </div>
                     </form>
-                )}
+                </div>
+            )}
 
-                {step === 2 && predictionResult && (
-                    <div className="animate-fade-in-up">
-                        <WCRSDashboard 
-                            predictionResult={predictionResult} 
-                            formData={formData} 
-                            realData={realData} 
-                            user={user}
-                            onBack={() => { setStep(1); setPredictionResult(null); }} 
-                            onBookAppointment={() => navigate('/patient/appointments')}
-                        />
-                        
-                        {/* Quick Appointment Booking */}
-                        <div style={{
-                            background: '#ffffff',
-                            borderRadius: '16px',
-                            padding: '32px',
-                            border: '1px solid #e5e7eb',
-                            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-                            marginTop: '24px',
-                            width: '100%',
-                            maxWidth: '100%',
-                            margin: '24px auto',
-                        }}>
-                                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '16px' }}>
-                                    Schedule Specialist Consultation
-                                </h3>
-                                
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-                                    <div>
-                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Select Doctor</label>
-                                        <select 
-                                            value={selectedDoctor} 
-                                            onChange={(e) => setSelectedDoctor(e.target.value)}
-                                            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
-                                        >
-                                            <option value="">Choose a doctor</option>
-                                            {doctors.map(doc => (
-                                                <option key={doc.id} value={doc.id}>Dr. {doc.name} - {doc.specialization}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Date</label>
-                                        <input 
-                                            type="date"
-                                            value={bookingDate}
-                                            onChange={(e) => setBookingDate(e.target.value)}
-                                            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Time</label>
-                                        <input 
-                                            type="time"
-                                            value={bookingTime}
-                                            onChange={(e) => setBookingTime(e.target.value)}
-                                            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
-                                        />
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-                                    <button
-                                        onClick={handleBookAppointment}
-                                        disabled={!selectedDoctor || !bookingDate || !bookingTime}
-                                        style={{
-                                            padding: '12px 24px',
-                                            background: (!selectedDoctor || !bookingDate || !bookingTime) ? '#d1d5db' : '#ef4444',
-                                            color: '#ffffff',
-                                            border: 'none',
-                                            borderRadius: '8px',
-                                            fontWeight: '600',
-                                            cursor: (!selectedDoctor || !bookingDate || !bookingTime) ? 'not-allowed' : 'pointer',
-                                            transition: '0.2s all'
-                                        }}
+            {/* Step 2: Results & Action - full width */}
+            {step === 2 && predictionResult && (
+                <div style={{ padding: '0 24px 24px' }} className="animate-fade-in-up">
+                    <WCRSDashboard 
+                        predictionResult={predictionResult} 
+                        formData={formData} 
+                        realData={realData} 
+                        user={user}
+                        onBack={() => { setStep(1); setPredictionResult(null); }} 
+                        onBookAppointment={() => navigate('/patient/appointments')}
+                    />
+                    
+                    {/* Quick Appointment Booking */}
+                    <div style={{
+                        background: '#ffffff',
+                        borderRadius: '16px',
+                        padding: '32px',
+                        border: '1px solid #e5e7eb',
+                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+                        marginTop: '24px',
+                        width: '100%',
+                    }}>
+                            <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '16px' }}>
+                                Schedule Specialist Consultation
+                            </h3>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Select Doctor</label>
+                                    <select 
+                                        value={selectedDoctor} 
+                                        onChange={(e) => setSelectedDoctor(e.target.value)}
+                                        style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
                                     >
-                                        Confirm Appointment
-                                    </button>
+                                        <option value="">Choose a doctor</option>
+                                        {doctors.map(doc => (
+                                            <option key={doc.id} value={doc.id}>Dr. {doc.name} - {doc.specialization}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Date</label>
+                                    <input 
+                                        type="date"
+                                        value={bookingDate}
+                                        onChange={(e) => setBookingDate(e.target.value)}
+                                        style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
+                                    />
+                                </div>
+                                <div>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Time</label>
+                                    <input 
+                                        type="time"
+                                        value={bookingTime}
+                                        onChange={(e) => setBookingTime(e.target.value)}
+                                        style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
+                                    />
                                 </div>
                             </div>
-                    </div>
-                )}
-            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+                                <button
+                                    onClick={handleBookAppointment}
+                                    disabled={!selectedDoctor || !bookingDate || !bookingTime}
+                                    style={{
+                                        padding: '12px 24px',
+                                        background: (!selectedDoctor || !bookingDate || !bookingTime) ? '#d1d5db' : '#ef4444',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        fontWeight: '600',
+                                        cursor: (!selectedDoctor || !bookingDate || !bookingTime) ? 'not-allowed' : 'pointer',
+                                        transition: '0.2s all'
+                                    }}
+                                >
+                                    Confirm Appointment
+                                </button>
+                            </div>
+                        </div>
+                </div>
+            )}
         </div>
     );
 }

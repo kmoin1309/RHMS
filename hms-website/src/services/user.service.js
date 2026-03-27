@@ -26,8 +26,27 @@ export const createUserService = async ({ data }) => {
     }
 }
 
+// Silent version of createUserService - no toast notifications
+// Used during login fallback to avoid confusing error messages
+export const silentCreateUser = async ({ data }) => {
+    try {
+        await setDoc(doc(fdb, `Users/${data.uid}`), data);
+        console.log("Silent: User document created for uid:", data.uid);
+        localStorage.setItem("user", JSON.stringify({ 
+            name: data.name,
+            uid: data.uid,
+            email: data.email,
+            role: data.role
+        }));
+    } catch (e) {
+        console.warn("Silent: Could not create Firestore doc:", e.message);
+        // No toast - this is a background operation during login fallback
+    }
+}
+
 // This function retrieves a user from the backend API (which uses Admin SDK)
 // Falls back to direct Firestore read if backend is unavailable
+// If both fail but we have a valid auth user, re-creates the Firestore document
 export const getUserService = async ({ uid, role }) => {
     // Try backend API first (bypasses Firestore security rules)
     try {
@@ -55,6 +74,30 @@ export const getUserService = async ({ uid, role }) => {
         }
     } catch (firestoreError) {
         console.warn("Direct Firestore read failed:", firestoreError.message);
+    }
+
+    // Last resort: The user exists in Firebase Auth (login succeeded) but their
+    // Firestore document is missing or inaccessible. Re-create it from the
+    // current Firebase Auth user so login doesn't fail with "User not found".
+    try {
+        const { getAuth } = await import("firebase/auth");
+        const currentUser = getAuth().currentUser;
+        if (currentUser && currentUser.uid === uid) {
+            console.warn("Firestore doc missing for authenticated user, re-creating...");
+            const userData = {
+                uid: currentUser.uid,
+                name: currentUser.displayName || currentUser.email.split("@")[0],
+                email: currentUser.email,
+                role: role,
+                createdAt: new Date(),
+            };
+            // Re-create the Firestore document
+            await setDoc(doc(fdb, `Users/${uid}`), userData);
+            console.log("Re-created Firestore user document for uid:", uid);
+            return userData;
+        }
+    } catch (recreateError) {
+        console.error("Failed to re-create user document:", recreateError.message);
     }
 
     console.log("No such document!");
