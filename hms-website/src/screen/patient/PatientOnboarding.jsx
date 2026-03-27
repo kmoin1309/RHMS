@@ -4,6 +4,8 @@ import { useUserContext } from "../../context/userContext";
 import { useDataContext } from "../../context/DataContext";
 import { useGetDeviceData } from "../../services/realtime-db.service";
 import Navbar from "../../components/navbar";
+import WCRSDashboard from "../../components/WCRSDashboard";
+
 import { Activity, Heart, Scale, Thermometer, Stethoscope, Calendar, Clock, ChevronDown, Flame, Zap, AlertTriangle, Droplets } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -23,6 +25,8 @@ export default function PatientOnboarding() {
     const [patientDataOpen, setPatientDataOpen] = useState(true);
     const [vitalsOpen, setVitalsOpen] = useState(true);
     const [historyOpen, setHistoryOpen] = useState(true);
+    const [heredityOpen, setHeredityOpen] = useState(true);
+    const [activityOpen, setActivityOpen] = useState(true);
 
     // Booking State
     const [doctors, setDoctors] = useState([]);
@@ -50,7 +54,17 @@ export default function PatientOnboarding() {
         cardiovascular_disease: 'No',
         stroke: 'No',
         family_diabetes: 'No',
-        prev_diagnosis: 'No'
+        prev_diagnosis: 'No',
+        // Heredity (WCRS Section D)
+        heredity_both_parents: false,
+        heredity_father: false,
+        heredity_mother: false,
+        heredity_sibling: false,
+        heredity_grandparent: false,
+        // Activity MET (WCRS Section E)
+        met_value: '4',
+        activity_minutes: '30',
+        activity_days: '3'
     });
 
     // Compute BMI reactively
@@ -682,6 +696,144 @@ export default function PatientOnboarding() {
                             </div>
                         </Section>
 
+                        {/* Heredity Section (WCRS Section D) */}
+                        <Section
+                            title="🧬 Family Heredity (Diabetes)"
+                            icon=""
+                            isOpen={heredityOpen}
+                            toggle={() => setHeredityOpen(!heredityOpen)}
+                            accentColor="#f59e0b"
+                        >
+                            <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '16px' }}>
+                                Select all family members with diabetes history. Each selection contributes to your heredity risk score (H_score), capped at 1.0.
+                            </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px' }}>
+                                {[
+                                    { key: 'heredity_both_parents', label: 'Both Parents', score: '1.0', icon: '👨‍👩‍👦' },
+                                    { key: 'heredity_father', label: 'Father', score: '0.5', icon: '👨' },
+                                    { key: 'heredity_mother', label: 'Mother', score: '0.5', icon: '👩' },
+                                    { key: 'heredity_sibling', label: 'Sibling', score: '0.3', icon: '🧑‍🤝‍🧑' },
+                                    { key: 'heredity_grandparent', label: 'Grandparent', score: '0.15', icon: '👴' },
+                                ].map(card => (
+                                    <div
+                                        key={card.key}
+                                        onClick={() => {
+                                            setFormData(prev => ({ ...prev, [card.key]: !prev[card.key] }));
+                                        }}
+                                        style={{
+                                            padding: '14px 10px',
+                                            borderRadius: '12px',
+                                            border: `2px solid ${formData[card.key] ? '#f59e0b' : '#e5e7eb'}`,
+                                            background: formData[card.key] ? '#fffbeb' : '#ffffff',
+                                            cursor: 'pointer',
+                                            textAlign: 'center',
+                                            transition: 'all 0.2s',
+                                            boxShadow: formData[card.key] ? '0 2px 8px rgba(245,158,11,0.15)' : 'none',
+                                        }}
+                                    >
+                                        <div style={{ fontSize: '24px', marginBottom: '4px' }}>{card.icon}</div>
+                                        <div style={{ fontWeight: '700', fontSize: '13px', color: '#111827' }}>{card.label}</div>
+                                        <div style={{
+                                            fontSize: '11px',
+                                            color: formData[card.key] ? '#d97706' : '#9ca3af',
+                                            fontWeight: '600',
+                                            marginTop: '4px',
+                                        }}>
+                                            H = {card.score}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {/* Live H_score display */}
+                            {(() => {
+                                let hs = 0;
+                                if (formData.heredity_both_parents || (formData.heredity_father && formData.heredity_mother)) hs = 1.0;
+                                else {
+                                    if (formData.heredity_father) hs += 0.5;
+                                    if (formData.heredity_mother) hs += 0.5;
+                                    if (formData.heredity_sibling) hs += 0.3;
+                                    if (formData.heredity_grandparent) hs += 0.15;
+                                }
+                                hs = Math.min(hs, 1.0);
+                                const drH = (hs * 25).toFixed(1);
+                                return (
+                                    <div style={{
+                                        marginTop: '14px',
+                                        padding: '10px 16px',
+                                        background: '#fffbeb',
+                                        borderRadius: '8px',
+                                        border: '1px solid #fde68a',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        fontSize: '13px',
+                                        fontWeight: '600',
+                                    }}>
+                                        <span style={{ color: '#92400e' }}>H_score = {hs.toFixed(2)}</span>
+                                        <span style={{ color: '#b45309' }}>ΔR_Heredity = {drH}%</span>
+                                    </div>
+                                );
+                            })()}
+                        </Section>
+
+                        {/* Activity / MET Section (WCRS Section E) */}
+                        <Section
+                            title="🏃 Physical Activity (MET)"
+                            icon=""
+                            isOpen={activityOpen}
+                            toggle={() => setActivityOpen(!activityOpen)}
+                            accentColor="#06b6d4"
+                        >
+                            <p style={{ color: '#6b7280', fontSize: '13px', marginBottom: '16px' }}>
+                                Activity is a <strong>multiplier</strong> on your composite risk. 150 min/week of moderate activity (600 MET-min) = 30% risk reduction.
+                            </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+                                <div style={{ marginBottom: '12px' }}>
+                                    <label style={{ display: 'block', color: '#4b5563', fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Activity Type (METs)</label>
+                                    <select
+                                        name="met_value"
+                                        value={formData.met_value}
+                                        onChange={handleChange}
+                                        style={{
+                                            width: '100%', padding: '10px 14px', background: '#ffffff',
+                                            border: '1px solid #d1d5db', borderRadius: '8px', color: '#111827',
+                                            fontSize: '14px', fontWeight: '500', outline: 'none', cursor: 'pointer',
+                                        }}
+                                    >
+                                        <option value="2">Light walk (2 METs)</option>
+                                        <option value="3.5">Brisk walk (3.5 METs)</option>
+                                        <option value="4">Moderate (4 METs)</option>
+                                        <option value="6">Vigorous (6 METs)</option>
+                                        <option value="8">Running (8 METs)</option>
+                                    </select>
+                                </div>
+                                <NumberField label="Minutes / Day" name="activity_minutes" value={formData.activity_minutes} onChange={handleChange} step={5} />
+                                <NumberField label="Days / Week" name="activity_days" value={formData.activity_days} onChange={handleChange} step={1} />
+                            </div>
+                            {/* Live MET-weekly & modifier display */}
+                            {(() => {
+                                const metW = parseFloat(formData.met_value) * parseFloat(formData.activity_minutes) * parseFloat(formData.activity_days);
+                                let mod = 1.0 - (0.30 * (metW - 600) / 600);
+                                mod = Math.max(0.5, Math.min(1.2, mod));
+                                const modColor = mod > 1.0 ? '#dc2626' : mod < 1.0 ? '#16a34a' : '#6b7280';
+                                return (
+                                    <div style={{
+                                        marginTop: '4px',
+                                        padding: '10px 16px',
+                                        background: mod <= 1.0 ? '#ecfdf5' : '#fef2f2',
+                                        borderRadius: '8px',
+                                        border: `1px solid ${mod <= 1.0 ? '#a7f3d0' : '#fecaca'}`,
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        fontSize: '13px',
+                                        fontWeight: '600',
+                                    }}>
+                                        <span style={{ color: '#065f46' }}>MET-min/week = {metW.toFixed(0)}</span>
+                                        <span style={{ color: modColor }}>Activity Modifier = {mod.toFixed(3)}</span>
+                                    </div>
+                                );
+                            })()}
+                        </Section>
+
                         {/* Analyze Risk Button */}
                         <button
                             type="submit"
@@ -743,276 +895,84 @@ export default function PatientOnboarding() {
                 )}
 
                 {step === 2 && predictionResult && (
-                    <div className="animate-fade-in-up" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                        {/* Result Card */}
+                    <div className="animate-fade-in-up">
+                        <WCRSDashboard 
+                            predictionResult={predictionResult} 
+                            formData={formData} 
+                            realData={realData} 
+                            user={user}
+                            onBack={() => { setStep(1); setPredictionResult(null); }} 
+                            onBookAppointment={() => navigate('/patient/appointments')}
+                        />
+                        
+                        {/* Quick Appointment Booking */}
                         <div style={{
                             background: '#ffffff',
                             borderRadius: '16px',
                             padding: '32px',
-                            borderLeft: `6px solid ${predictionResult.prediction === 1 ? '#ef4444' : '#16a34a'}`,
                             border: '1px solid #e5e7eb',
                             boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+                            marginTop: '24px',
+                            width: '100%',
+                            maxWidth: '100%',
+                            margin: '24px auto',
                         }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                                {predictionResult.prediction === 1 ? (
-                                    <AlertTriangle size={32} color="#ef4444" />
-                                ) : (
-                                    <Heart size={32} color="#16a34a" />
-                                )}
-                                <h2 style={{
-                                    fontSize: '28px',
-                                    fontWeight: '800',
-                                    color: predictionResult.prediction === 1 ? '#ef4444' : '#16a34a',
-                                    margin: 0,
-                                }}>
-                                    {predictionResult.prediction === 1 ? 'High Risk Detected' : 'Low Risk - Healthy'}
-                                </h2>
-                            </div>
-                            <p style={{ color: '#4b5563', fontSize: '16px', marginBottom: '20px', lineHeight: 1.6 }}>
-                                Based on your health metrics, your risk score is <strong style={{ color: '#111827' }}>{predictionResult.riskScore}/100</strong>.
-                                {predictionResult.prediction === 1 && " It is highly recommended to consult a specialist immediately."}
-                            </p>
-
-                            {/* Source & BMI */}
-                            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                                <span style={{
-                                    padding: '6px 14px',
-                                    background: '#eff6ff',
-                                    color: '#2563eb',
-                                    borderRadius: '20px',
-                                    fontSize: '13px',
-                                    fontWeight: '600',
-                                }}>
-                                    Source: {predictionResult.source || 'ML Model'}
-                                </span>
-                                <span style={{
-                                    padding: '6px 14px',
-                                    background: '#f3e8ff',
-                                    color: '#7c3aed',
-                                    borderRadius: '20px',
-                                    fontSize: '13px',
-                                    fontWeight: '600',
-                                }}>
-                                    BMI: {predictionResult.bmi || bmi}
-                                </span>
-                            </div>
-
-                            {/* Risk Factors */}
-                            {predictionResult.riskFactors && predictionResult.riskFactors.length > 0 && (
-                                <div style={{ marginBottom: '20px' }}>
-                                    <h3 style={{ color: '#111827', fontWeight: '700', marginBottom: '10px', fontSize: '16px' }}>Key Risk Factors:</h3>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                                        {predictionResult.riskFactors.map((factor, idx) => (
-                                            <span key={idx} style={{
-                                                background: '#fef2f2',
-                                                color: '#ef4444',
-                                                padding: '6px 14px',
-                                                borderRadius: '20px',
-                                                fontSize: '13px',
-                                                fontWeight: '600',
-                                            }}>
-                                                {factor}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Recommendations */}
-                            {predictionResult.recommendations && predictionResult.recommendations.length > 0 && (
-                                <div>
-                                    <h3 style={{ color: '#111827', fontWeight: '700', marginBottom: '10px', fontSize: '16px' }}>Recommendations:</h3>
-                                    <ul style={{ color: '#4b5563', fontSize: '14px', lineHeight: 2, paddingLeft: '20px' }}>
-                                        {predictionResult.recommendations.map((rec, idx) => (
-                                            <li key={idx}>{rec}</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Doctor Booking Section (Only if High Risk) */}
-                        {predictionResult.prediction === 1 && (
-                            <div style={{
-                                background: '#ffffff',
-                                borderRadius: '16px',
-                                padding: '32px',
-                                border: '1px solid #e5e7eb',
-                                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-                            }}>
-                                <h3 style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '10px',
-                                    fontSize: '20px',
-                                    fontWeight: '700',
-                                    color: '#111827',
-                                    marginBottom: '24px',
-                                }}>
-                                    <Stethoscope size={22} color="#3b82f6" />
-                                    Book a Consultation
+                                <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '16px' }}>
+                                    Schedule Specialist Consultation
                                 </h3>
-
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+                                
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                                     <div>
-                                        <label style={{ display: 'block', color: '#4b5563', fontSize: '14px', fontWeight: '600', marginBottom: '12px' }}>
-                                            Select Specialist
-                                        </label>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Select Doctor</label>
+                                        <select 
+                                            value={selectedDoctor} 
+                                            onChange={(e) => setSelectedDoctor(e.target.value)}
+                                            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
+                                        >
+                                            <option value="">Choose a doctor</option>
                                             {doctors.map(doc => (
-                                                <div
-                                                    key={doc.id}
-                                                    onClick={() => setSelectedDoctor(doc.id)}
-                                                    style={{
-                                                        padding: '14px 16px',
-                                                        borderRadius: '10px',
-                                                        border: `2px solid ${selectedDoctor === doc.id ? '#3b82f6' : '#e5e7eb'}`,
-                                                        background: selectedDoctor === doc.id ? '#eff6ff' : '#ffffff',
-                                                        cursor: 'pointer',
-                                                        transition: 'all 0.2s',
-                                                    }}
-                                                >
-                                                    <div style={{ fontWeight: '700', color: '#111827', fontSize: '14px' }}>{doc.name}</div>
-                                                    <div style={{ color: '#4b5563', fontSize: '13px', marginTop: '2px' }}>{doc.specialization}</div>
-                                                </div>
+                                                <option key={doc.id} value={doc.id}>Dr. {doc.name} - {doc.specialization}</option>
                                             ))}
-                                        </div>
+                                        </select>
                                     </div>
-
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        <div>
-                                            <label style={{ display: 'block', color: '#4b5563', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Preferred Date</label>
-                                            <input
-                                                type="date"
-                                                min={new Date().toISOString().split('T')[0]}
-                                                value={bookingDate}
-                                                onChange={(e) => setBookingDate(e.target.value)}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '10px 14px',
-                                                    background: '#ffffff',
-                                                    border: '1px solid #d1d5db',
-                                                    borderRadius: '10px',
-                                                    color: '#111827',
-                                                    fontSize: '15px',
-                                                    outline: 'none',
-                                                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)',
-                                                }}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label style={{ display: 'block', color: '#4b5563', fontSize: '14px', fontWeight: '600', marginBottom: '8px' }}>Preferred Time</label>
-                                            <input
-                                                type="time"
-                                                value={bookingTime}
-                                                onChange={(e) => setBookingTime(e.target.value)}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '10px 14px',
-                                                    background: '#ffffff',
-                                                    border: '1px solid #d1d5db',
-                                                    borderRadius: '10px',
-                                                    color: '#111827',
-                                                    fontSize: '15px',
-                                                    outline: 'none',
-                                                    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.02)',
-                                                }}
-                                            />
-                                        </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Date</label>
+                                        <input 
+                                            type="date"
+                                            value={bookingDate}
+                                            onChange={(e) => setBookingDate(e.target.value)}
+                                            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '500', color: '#374151' }}>Time</label>
+                                        <input 
+                                            type="time"
+                                            value={bookingTime}
+                                            onChange={(e) => setBookingTime(e.target.value)}
+                                            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #d1d5db', outline: 'none' }}
+                                        />
                                     </div>
                                 </div>
-
-                                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
                                     <button
-                                        type="button"
-                                        onClick={() => navigate('/patient/dashboard')}
+                                        onClick={handleBookAppointment}
+                                        disabled={!selectedDoctor || !bookingDate || !bookingTime}
                                         style={{
                                             padding: '12px 24px',
-                                            background: '#ffffff',
-                                            border: '1px solid #d1d5db',
-                                            borderRadius: '10px',
-                                            color: '#4b5563',
-                                            fontSize: '14px',
-                                            fontWeight: '600',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                        onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
-                                        onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
-                                    >
-                                        Skip for Now
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleBookAppointment}
-                                        disabled={loading || !selectedDoctor}
-                                        style={{
-                                            padding: '12px 28px',
-                                            background: loading || !selectedDoctor
-                                                ? '#d1d5db'
-                                                : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                                            border: 'none',
-                                            borderRadius: '10px',
+                                            background: (!selectedDoctor || !bookingDate || !bookingTime) ? '#d1d5db' : '#ef4444',
                                             color: '#ffffff',
-                                            fontSize: '14px',
-                                            fontWeight: '700',
-                                            cursor: loading || !selectedDoctor ? 'not-allowed' : 'pointer',
-                                            boxShadow: loading || !selectedDoctor ? 'none' : '0 4px 14px rgba(59, 130, 246, 0.3)',
-                                            transition: 'all 0.3s'
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            fontWeight: '600',
+                                            cursor: (!selectedDoctor || !bookingDate || !bookingTime) ? 'not-allowed' : 'pointer',
+                                            transition: '0.2s all'
                                         }}
                                     >
-                                        {loading ? 'Booking...' : 'Confirm Appointment'}
+                                        Confirm Appointment
                                     </button>
                                 </div>
                             </div>
-                        )}
-
-                        {/* Low Risk Action */}
-                        {predictionResult.prediction === 0 && (
-                            <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                <button
-                                    type="button"
-                                    onClick={() => navigate('/patient/dashboard')}
-                                    style={{
-                                        padding: '14px 32px',
-                                        background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        color: '#fff',
-                                        fontSize: '16px',
-                                        fontWeight: '700',
-                                        cursor: 'pointer',
-                                        boxShadow: '0 4px 20px rgba(34, 197, 94, 0.3)',
-                                    }}
-                                >
-                                    Return to Dashboard
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Back to form */}
-                        <div style={{ display: 'flex', justifyContent: 'center' }}>
-                            <button
-                                type="button"
-                                onClick={() => { setStep(1); setPredictionResult(null); }}
-                                style={{
-                                    padding: '10px 24px',
-                                    background: '#ffffff',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '10px',
-                                    color: '#4b5563',
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#ffffff'}
-                            >
-                                ← Re-assess with new data
-                            </button>
-                        </div>
                     </div>
                 )}
             </div>
