@@ -5,9 +5,24 @@ This repository contains the integrated code for the Hospital Management System,
 ## Project Structure
 
 - **backend/**: Node.js/Express backend server.
-- **hms-website/**: React frontend application.
+- **hms-website/**: React frontend application (with Diabetes Risk Module).
+- **prediction_interface.py**: Flask-based ML prediction engine.
 - **LangchainAgent/**: AI/ML agent integration.
 - **RHMS-main/**: Additional resources/modules.
+
+## ✨ New: Diabetes Risk Prediction (WCRS)
+The system now includes a comprehensive **Weighted Composite Risk Scoring (WCRS)** module for early diabetes detection.
+
+### Key Features:
+- **Clinical Data Assessment**: 5-section manual data entry (Demographics, Vitals, Anthropometrics, Heredity, Activity).
+- **Interactive Risk Explorer**: "What-if" analysis using real-time sliders for parameter simulation.
+- **Weighted Scoring (WCRS)**:
+  - **BP Impact**: Map Arterial Pressure (MAP) based scoring.
+  - **Weight/BMI Impact**: Automatic BMI computation and risk delta.
+  - **Heredity Score (H_score)**: Cumulative weighted family history tracking.
+  - **Physical Activity**: MET-based modifier calculation.
+- **Dynamic Theming**: Support for both Clinical Dark Mode and standard Light Mode.
+
 
 ## Prerequisites
 

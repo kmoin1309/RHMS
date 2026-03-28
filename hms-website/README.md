@@ -1,8 +1,30 @@
-# React + Vite
+# HMS React Frontend (with Diabetes Risk Prediction)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the React frontend for the Hospital Management System, built with Vite.
 
-Currently, two official plugins are available:
+## 🚀 Key Modules: Diabetes Risk Prediction (WCRS)
+A sophisticated manual clinical assessment tool that computes the **Weighted Composite Risk Score (WCRS)** to predict diabetes risk based on medical data.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Features
+- **Manual Clinical Form**:
+  - **A. Demographics**: Full patient record management.
+  - **B. Clinical Vitals**: Manual entry for BP, SpO2, Heart Rate, and Breath Acetone.
+  - **C. Anthropometrics**: Automatic BMI and weight-related risk mapping.
+  - **D. Heredity**: Interactive family history H_score calculation.
+  - **E. Activity**: MET-based modifier based on lifestyle.
+- **WCRS Interactivity**:
+  - **Real-time Risk Exploration**: Interactive "Slider-Based" simulation dashboard.
+  - **Live Risk Deltas**: Visual impact of cada parameter (e.g., BP vs BMI) on the total risk.
+  - **Clinical Recommendations**: Dynamic medical advice based on score severity.
+- **Dynamic Theming**: Integrated Light and Dark modes.
+
+## 🛠️ Tech Stack
+- **React 18** + **Vite**
+- **Chart.js** (Trends visualization)
+- **Lucide-React** (Aesthetics & Icons)
+- **Tailwind CSS** (Layout & Responsiveness)
+- **Context API** (User and Theme management)
+
+## 🏃 Getting Started
+1. `npm install`
+2. `npm run dev` (starts on port 5174)
